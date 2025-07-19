@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor - View Hospitals</title>
+</head>
+<body>
+  <h2>Doctor Dashboard - Available Hospitals</h2>
+
+  <!-- Doctor's Specialization (you can change this dynamically later) -->
+  <p>Doctor Specialization: <strong id="specialization">Cardiology</strong></p>
+
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Hospital Name</th>
+        <th>Location</th>
+        <th>Departments</th>
+        <th>Book_Slot</th>
+      </tr>
+    </thead>
+    <tbody id="hospitalList"></tbody>
+  </table>
+
+  <!-- Add this below your table in doctor_hospital_association.html -->
+  <div id="doctorSlotsSection">
+    <h3>Your Availability Slots</h3>
+    <table border="1" width="100%">
+      <thead>
+        <tr>
+          <th>Hospital</th>
+          <th>Department</th>
+          <th>Date</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Fee</th>
+        </tr>
+      </thead>
+      <tbody id="doctorSlotsTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    
+const specialization = document.getElementById("specialization").textContent;
+const hospitals = JSON.parse(localStorage.getItem("hospitals")) || [];
+
+// Filter hospitals where any department matches the specialization
+const filteredHospitals = hospitals.filter(hospital =>
+  hospital.departments.some(dep => dep.name === specialization)
+);
+
+const hospitalList = document.getElementById("hospitalList");
+
+filteredHospitals.forEach((hospital, idx) => {
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${hospital.name}</td>
+    <td>${hospital.location}</td>
+    <td>${hospital.departments.map(dep => dep.name).join(', ')}</td>
+    <td>
+      <button onclick="bookSlot('${hospital.name}', '${specialization}')">Book Slot</button>
+    </td>
+  `;
+  hospitalList.appendChild(row);
+});
+
+function bookSlot(hospitalName, specialization) {
+  const currentDoctorEmail = localStorage.getItem("currentDoctorEmail");
+  let doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+  let doctor = doctors.find(d => d.email === currentDoctorEmail);
+  if (!doctor) {
+    alert("Doctor not found or not logged in!");
+    return;
+  }
+
+  const date = prompt("Enter date for slot (YYYY-MM-DD):");
+  const start = prompt("Enter start time (HH:MM):");
+  const end = prompt("Enter end time (HH:MM):");
+  const fee = prompt("Enter consultation fee:");
+
+  if (!date || !start || !end || !fee) {
+    alert("All fields are required!");
+    return;
+  }
+
+  // Prevent overlapping slots across all associations
+  const newStart = new Date(`${date}T${start}`);
+  const newEnd = new Date(`${date}T${end}`);
+  let overlap = false;
+  doctor.associations.forEach(assoc => {
+    assoc.slots.forEach(slot => {
+      if (slot.date === date) {
+        const slotStart = new Date(`${slot.date}T${slot.start}`);
+        const slotEnd = new Date(`${slot.date}T${slot.end}`);
+        if (newStart < slotEnd && newEnd > slotStart) {
+          overlap = true;
+        }
+      }
+    });
+  });
+  if (overlap) {
+    alert("This slot overlaps with another slot!");
+    return;
+  }
+
+  // Find or create association for this hospital/department
+  let assoc = doctor.associations.find(a => a.hospitalName === hospitalName && a.department === specialization);
+  if (!assoc) {
+    assoc = { hospitalName, department: specialization, slots: [] };
+    doctor.associations.push(assoc);
+  }
+  assoc.slots.push({ date, start, end, fee });
+
+  // Save back to localStorage
+  doctors = doctors.map(d => d.email === doctor.email ? doctor : d);
+  localStorage.setItem("doctors", JSON.stringify(doctors));
+
+  alert(`Slot booked at ${hospitalName} on ${date} from ${start} to ${end} for ₹${fee}`);
+  showDoctorSlots(); // Refresh slot view
+}
+
+function showDoctorSlots() {
+  const currentDoctorEmail = localStorage.getItem("currentDoctorEmail");
+  let doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+  let doctor = doctors.find(d => d.email === currentDoctorEmail);
+  const doctorSlotsTable = document.getElementById("doctorSlotsTable");
+  doctorSlotsTable.innerHTML = ""; // Clear existing slots
+
+  if (!doctor || !doctor.associations) return;
+
+  doctor.associations.forEach(assoc => {
+    assoc.slots.forEach(slot => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${assoc.hospitalName}</td>
+        <td>${assoc.department}</td>
+        <td>${slot.date}</td>
+        <td>${slot.start}</td>
+        <td>${slot.end}</td>
+        <td>${slot.fee}</td>
+      `;
+      doctorSlotsTable.appendChild(row);
+    });
+  });
+}
+
+// Call to show slots on page load
+showDoctorSlots();
+
+let bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+let doctorBookings = bookings.filter(b => b.doctorId === currentDoctorId);
+let totalEarnings = doctorBookings.reduce((sum, b) => sum + Number(b.fee) * 0.6, 0);
+  </script>
+</body>
+</html>
+

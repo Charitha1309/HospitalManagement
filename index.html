@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Appointment System - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      color: #333;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .admin-btn { background-color: #4CAF50; color: white; }
+    .doctor-btn { background-color: #2196F3; color: white; }
+    .patient-btn { background-color: #FF9800; color: white; }
+    button:hover { opacity: 0.9; }
+    .link-btn {
+      background: none;
+      color: #4CAF50;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Hospital Management System</h2>
+    <p>Select your role to Login</p>
+    <button class="admin-btn" onclick="window.location.href='admin_login.html'">Login as Hospital Admin</button>
+    <button class="doctor-btn" onclick="window.location.href='doctor_login.html'">Login as Doctor</button>
+    <button class="patient-btn" onclick="window.location.href='patient_login.html'">Login as Patient</button>
+    <button class="link-btn" onclick="window.location.href='register.html'">New User? Register Here</button>
+  </div>
+
+  <script>
+    function redirectTo(role) {
+      window.location.href = role + '-dashboard.html';
+    }
+  </script>
+</body>
+</html>

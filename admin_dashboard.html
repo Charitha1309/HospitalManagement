@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hospital Management</title>
+  <style>
+    body { font-family: Arial; }
+    .section { margin-bottom: 30px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <!-- Admin Section -->
+  <div class="section">
+    <h2>Admin: Add Hospital</h2>
+    <label>Hospital Name: <input type="text" id="hospitalName" /></label><br><br>
+    <label>Location: <input type="text" id="hospitalLocation" /></label><br><br>
+    <label>Departments (comma-separated):<br>
+      <input type="text" id="hospitalDepartments" placeholder="e.g. Cardiology, Neurology" />
+    </label><br><br>
+    <button onclick="addHospital()">Add Hospital</button>
+    <p id="adminMessage" style="color: green;"></p>
+  </div>
+
+  <div class="section">
+    <h2>All Hospitals</h2>
+    <table border="1" width="100%">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Departments</th>
+        </tr>
+      </thead>
+      <tbody id="hospitalTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Hospital Reports</h2>
+    <label for="adminHospitalSelect">Select Hospital:</label>
+    <select id="adminHospitalSelect" onchange="renderHospitalReport()"></select>
+    <div id="hospitalReport"></div>
+  </div>
+  
+
+  <script>
+function addHospital() {
+  const name = document.getElementById('hospitalName').value.trim();
+  const location = document.getElementById('hospitalLocation').value.trim();
+  const departments = document.getElementById('hospitalDepartments').value
+    .split(',')
+    .map(dep => dep.trim())
+    .filter(dep => dep);
+
+  if (!name || !location || departments.length === 0) {
+    document.getElementById('adminMessage').textContent = 'Please fill all fields.';
+    return;
+  }
+
+  let hospitals = JSON.parse(localStorage.getItem('hospitals')) || [];
+
+  // Check for duplicate hospital (by name and location)
+  const exists = hospitals.some(h => h.name === name && h.location === location);
+  if (exists) {
+    document.getElementById('adminMessage').textContent = 'Hospital already exists!';
+    return;
+  }
+
+  // Prepare departments with empty doctor lists
+  const departmentObjects = departments.map(dep => ({
+    name: dep,
+    doctors: [] // For future doctor affiliation
+  }));
+
+  const hospital = { name, location, departments: departmentObjects };
+
+  hospitals.push(hospital);
+  localStorage.setItem('hospitals', JSON.stringify(hospitals));
+
+  document.getElementById('adminMessage').textContent = 'Hospital added successfully!';
+  document.getElementById('hospitalName').value = '';
+  document.getElementById('hospitalLocation').value = '';
+  document.getElementById('hospitalDepartments').value = '';
+
+  renderHospitals(); // Refresh the hospital list
+}
+
+// Function to render all hospitals in the table
+function renderHospitals() {
+  const hospitals = JSON.parse(localStorage.getItem('hospitals')) || [];
+  const tbody = document.getElementById('hospitalTableBody');
+  tbody.innerHTML = '';
+  hospitals.forEach(hospital => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${hospital.name}</td>
+      <td>${hospital.location}</td>
+      <td>${hospital.departments.map(dep => dep.name).join(', ')}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Populate hospital select for reports
+  const select = document.getElementById('adminHospitalSelect');
+  select.innerHTML = '';
+  hospitals.forEach((hospital, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = `${hospital.name} - ${hospital.location}`;
+    select.appendChild(option);
+  });
+}
+
+function renderHospitalSelect() {
+  // const hospitals = JSON.parse(localStorage.getItem('hospitals')) || [];
+  // const select = document.getElementById('adminHospitalSelect');
+  // select.innerHTML = hospitals.map(h => `<option value="${h.name}">${h.name} (${h.location})</option>`).join('');
+  const index = document.getElementById('adminHospitalSelect').value;
+const hospitals = JSON.parse(localStorage.getItem('hospitals')) || [];
+const hospital = hospitals[Number(index)];
+
+}
+
+function renderHospitalReport() {
+  const hospitalName = document.getElementById('adminHospitalSelect').value;
+  const hospitals = JSON.parse(localStorage.getItem('hospitals')) || [];
+  const bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+  const doctors = JSON.parse(localStorage.getItem('doctors')) || [];
+  const hospital = hospitals.find(h => h.name === hospitalName);
+
+  if (!hospital) {
+    document.getElementById('hospitalReport').innerHTML = "<p>No hospital selected.</p>";
+    return;
+  }
+
+  // List all associated doctors
+  let doctorIds = [];
+  hospital.departments.forEach(dep => {
+    dep.doctors && dep.doctors.forEach(id => {
+      if (!doctorIds.includes(id)) doctorIds.push(id);
+    });
+  });
+  let doctorList = doctorIds.map(id => {
+    const doc = doctors.find(d => d.id === id);
+    return doc ? doc.name : id;
+  }).join(', ') || "No doctors associated";
+
+  // Total consultations booked within the hospital
+  let hospitalBookings = bookings.filter(b => b.hospitalName === hospitalName);
+  
+  let totalConsultations = hospitalBookings.length;
+
+  // Total revenue generated for the hospital
+  let totalRevenue = hospitalBookings.reduce((sum, b) => sum + Number(b.fee), 0);
+
+  // Revenue generated per doctor
+  let revenuePerDoctor = {};
+  hospitalBookings.forEach(b => {
+    if (!revenuePerDoctor[b.doctorId]) revenuePerDoctor[b.doctorId] = 0;
+    revenuePerDoctor[b.doctorId] += Number(b.fee);
+  });
+
+  // Revenue generated per department
+  let revenuePerDepartment = {};
+  hospitalBookings.forEach(b => {
+    if (!revenuePerDepartment[b.department]) revenuePerDepartment[b.department] = 0;
+    revenuePerDepartment[b.department] += Number(b.fee);
+  });
+
+  document.getElementById('hospitalReport').innerHTML = `
+    <p><strong>Associated Doctors:</strong> ${doctorList}</p>
+    <p><strong>Total Consultations:</strong> ${totalConsultations}</p>
+    <p><strong>Total Revenue:</strong> ₹${totalRevenue}</p>
+    <p><strong>Revenue per Doctor:</strong></p>
+    <ul>
+      ${Object.entries(revenuePerDoctor).map(([id, amt]) => {
+        const doc = doctors.find(d => d.id === id);
+        return `<li>${doc ? doc.name : id}: ₹${amt}</li>`;
+      }).join('')}
+    </ul>
+    <p><strong>Revenue per Department:</strong></p>
+    <ul>
+      ${Object.entries(revenuePerDepartment).map(([dep, amt]) => `<li>${dep}: ₹${amt}</li>`).join('')}
+    </ul>
+  `;
+}
+
+// Initial render on page load
+window.onload = function() {
+  renderHospitalSelect();
+  renderHospitalReport();
+  document.getElementById('adminHospitalSelect').addEventListener('change', renderHospitalReport);
+};
+  </script>
+</body>
+</html>

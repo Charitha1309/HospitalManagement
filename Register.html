@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Registration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e8f0fe;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    form {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      width: 100%;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h2>User Registration</h2>
+  <form id="registrationForm">
+    <label for="role">Register as:</label>
+    <select id="role" name="role" required onchange="toggleFields()">
+      <option value="">-- Select Role --</option>
+      <option value="doctor">Doctor</option>
+      <option value="admin">Hospital Admin</option>
+      <option value="patient">Patient</option>
+    </select>
+
+    <label for="name">Full Name:</label>
+    <input type="text" id="name" name="name" required />
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required />
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required />
+
+    <div id="doctorFields" class="hidden">
+      <label for="specialization">Specialization:</label>
+      <input type="text" id="specialization" name="specialization" />
+
+      <label for="license">Medical License No:</label>
+      <input type="text" id="license" name="license" />
+    </div>
+
+    <div id="adminFields" class="hidden">
+      <label for="hospitalName">Hospital Name:</label>
+      <input type="text" id="hospitalName" name="hospitalName" />
+    </div>
+
+    <div id="patientFields" class="hidden">
+      <label for="age">Age:</label>
+      <input type="number" id="age" name="age" />
+
+      <label for="gender">Gender:</label>
+      <select id="gender" name="gender">
+        <option value="">-- Select --</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <!-- ...existing code... -->
+  <script>
+    function toggleFields() {
+      const role = document.getElementById("role").value;
+      document.getElementById("doctorFields").classList.add("hidden");
+      document.getElementById("adminFields").classList.add("hidden");
+      document.getElementById("patientFields").classList.add("hidden");
+
+      if (role === "doctor") {
+        document.getElementById("doctorFields").classList.remove("hidden");
+      } else if (role === "admin") {
+        document.getElementById("adminFields").classList.remove("hidden");
+      } else if (role === "patient") {
+        document.getElementById("patientFields").classList.remove("hidden");
+      }
+    }
+
+    document.getElementById("registrationForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const role = document.getElementById("role").value;
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (role === "doctor") {
+        const specialization = document.getElementById("specialization").value
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s);
+        const license = document.getElementById("license").value.trim();
+
+        if (!name || !email || !password || specialization.length === 0 || !license) {
+          alert("Please fill all doctor fields.");
+          return;
+        }
+
+        let doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+        if (doctors.some(d => d.email === email)) {
+          alert("Doctor with this email already exists!");
+          return;
+        }
+        const doctor = {
+          id: Date.now().toString(),
+          name,
+          email,
+          password, // In a real app, hash this password
+          specializations : 
+specialization,
+          license
+        };
+        doctors.push(doctor);
+        localStorage.setItem("doctors", JSON.stringify(doctors));
+        alert("Doctor registered successfully!");
+        window.location.href = "doctor_login.html";
+        return;
+      }
+
+      // You can add similar logic for admin and patient here
+
+      alert("Registered successfully!");
+    });
+  </script>
+</body>
+</html>

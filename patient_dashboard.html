@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
+
+    header {
+      background-color: #006600;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    nav {
+      background-color: #e0e0e0;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #006600;
+      font-weight: bold;
+      padding: 10px 15px;
+      border: 2px solid #006600;
+      border-radius: 5px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    nav a:hover {
+      background-color: #006600;
+      color: white;
+    }
+
+    .container {
+      padding: 40px;
+      text-align: center;
+    }
+
+    .container h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .logout-btn {
+      margin-top: 30px;
+      background-color: #cc0000;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background-color: #a30000;
+    }
+
+    /* New styles for doctor search section */
+    .search-doctor {
+      margin-top: 40px;
+      text-align: left;
+    }
+
+    .search-doctor h2 {
+      margin-bottom: 20px;
+    }
+
+    .search-doctor label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .search-doctor input {
+      padding: 10px;
+      width: calc(100% - 22px);
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .search-doctor button {
+      padding: 10px 15px;
+      background-color: #006600;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .search-doctor button:hover {
+      background-color: #004d00;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Welcome to Patient Dashboard</h1>
+  </header>
+
+  <nav>
+    <a href="#">View Appointments</a>
+    <a href="#">Book Appointment</a>
+    <a href="#">Medical History</a>
+  </nav>
+
+  <div class="container">
+    <h2>Hello, Patient!</h2>
+    <p>You can manage your appointments and view your medical records here.</p>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- New section for finding a doctor -->
+  <div class="search-doctor container">
+    <h2>Find a Doctor</h2>
+    <label>Specialization:
+      <input type="text" id="searchSpecialization" placeholder="e.g. Cardiology">
+    </label>
+    <label>Hospital:
+      <input type="text" id="searchHospital" placeholder="e.g. City Hospital">
+    </label>
+    <button onclick="searchDoctors()">Search</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Specializations</th>
+          <th>Hospital</th>
+          <th>Department</th>
+          <th>Available Slots</th>
+          <th>Book</th>
+        </tr>
+      </thead>
+      <tbody id="doctorSearchResults"></tbody>
+    </table>
+  </div>
+
+  <!-- New section for displaying patient bookings -->
+  <div class="container">
+    <h2>Your Bookings</h2>
+    <table border="1" width="100%">
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Hospital</th>
+          <th>Department</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Fee</th>
+        </tr>
+      </thead>
+      <tbody id="patientBookings"></tbody>
+    </table>
+  </div>
+
+  <script>
+    function logout() {
+      alert("Logged out successfully.");
+      window.location.href = "patient_login.html";
+    }
+
+    function searchDoctors() {
+      const specialization = document.getElementById("searchSpecialization").value.trim().toLowerCase();
+      const hospitalName = document.getElementById("searchHospital").value.trim().toLowerCase();
+      const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+      const tbody = document.getElementById("doctorSearchResults");
+      tbody.innerHTML = "";
+
+      doctors.forEach(doctor => {
+        doctor.associations && doctor.associations.forEach(assoc => {
+          // Filter by specialization and hospital
+          const specMatch = !specialization || (doctor.specializations && doctor.specializations.map(s => s.toLowerCase()).includes(specialization));
+          const hospMatch = !hospitalName || assoc.hospitalName.toLowerCase().includes(hospitalName);
+          if (specMatch && hospMatch) {
+            assoc.slots && assoc.slots.forEach((slot, idx) => {
+              // Check if slot is already booked
+              let bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+              let isBooked = bookings.some(b =>
+                b.doctorId === doctor.id &&
+                b.hospitalName === assoc.hospitalName &&
+                b.department === assoc.department &&
+                b.date === slot.date &&
+                b.start === slot.start &&
+                b.end === slot.end
+              );
+              if (!isBooked) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                  <td>${doctor.name}</td>
+                  <td>${doctor.specializations ? doctor.specializations.join(", ") : ""}</td>
+                  <td>${assoc.hospitalName}</td>
+                  <td>${assoc.department}</td>
+                  <td>${slot.date} ${slot.start}-${slot.end} (₹${slot.fee})</td>
+                  <td><button onclick="bookSlotForPatient('${doctor.id}','${assoc.hospitalName}','${assoc.department}','${slot.date}','${slot.start}','${slot.end}',${slot.fee})">Book</button></td>
+                `;
+                tbody.appendChild(tr);
+              }
+            });
+          }
+        });
+      });
+    }
+
+    function bookSlotForPatient(doctorId, hospitalName, department, date, start, end, fee) {
+      // For demo, get current patient from localStorage (simulate login)
+      const currentPatientId = localStorage.getItem("currentPatientId") || prompt("Enter your Patient ID:");
+      if (!currentPatientId) {
+        alert("You must be logged in as a patient to book.");
+        return;
+      }
+
+      // Optionally, let patient confirm or enter the fee
+      // const enteredFee = prompt("Enter consultation fee:", fee);
+
+      // Save booking
+      let bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+      bookings.push({
+        patientId: currentPatientId,
+        doctorId,
+        hospitalName,
+        department,
+        date,
+        start,
+        end,
+        fee
+      });
+      localStorage.setItem('bookings', JSON.stringify(bookings));
+
+      alert("Booking successful!");
+      searchDoctors(); // Refresh to hide booked slot
+    }
+
+    function showPatientBookings() {
+      const currentPatientId = localStorage.getItem("currentPatientId");
+      if (!currentPatientId) return;
+      let bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+      let doctors = JSON.parse(localStorage.getItem('doctors')) || [];
+      let myBookings = bookings.filter(b => b.patientId === currentPatientId);
+      const tbody = document.getElementById("patientBookings");
+      tbody.innerHTML = "";
+      myBookings.forEach(b => {
+        const doctor = doctors.find(d => d.id === b.doctorId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${doctor ? doctor.name : "Unknown"}</td>
+          <td>${b.hospitalName}</td>
+          <td>${b.department}</td>
+          <td>${b.date}</td>
+          <td>${b.start} - ${b.end}</td>
+          <td>₹${b.fee}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Load patient bookings on page load
+    window.onload = function() {
+      showPatientBookings();
+    };
+  </script>
+
+</body>
+</html>
